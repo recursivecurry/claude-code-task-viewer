@@ -1,12 +1,9 @@
-# dependencies
-node_modules/
+# Build output
+build/bin/
 
-# next.js
-.next/
-out/
-
-# env files
-.env*.local
+# Frontend
+frontend/dist/
+frontend/node_modules/
 
 # Dolt database files (added by bd init)
 .dolt/
