@@ -2,6 +2,8 @@
 
 A native desktop application for visualizing Claude Code's internal task data. Built with Go + [Wails](https://wails.io/), it reads from `~/.claude/tasks` and `~/.claude/projects` to display sessions, tasks, and dependency graphs in a single dashboard.
 
+![Screenshot](docs/screenshot.png)
+
 ## Features
 
 ### Session Sidebar
