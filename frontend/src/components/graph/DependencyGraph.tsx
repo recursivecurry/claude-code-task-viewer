@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback } from "react";
 import {
   ReactFlow,
   Background,
@@ -12,7 +12,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { Task } from "../../types";
-import { GetTasks } from "../../../wailsjs/go/main/App";
+import { useTasks } from "../../hooks/useTasks";
 import { computeLayout } from "../../lib/graph-layout";
 import TaskNode from "./TaskNode";
 
@@ -31,23 +31,9 @@ export default function DependencyGraph({
   onSelectTask,
   refreshKey,
 }: DependencyGraphProps) {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { tasks, loading } = useTasks(workspaceId, refreshKey);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
-
-  useEffect(() => {
-    setLoading(true);
-    GetTasks(workspaceId)
-      .then((result) => setTasks((result || []) as unknown as Task[]))
-      .finally(() => setLoading(false));
-  }, [workspaceId]);
-
-  useEffect(() => {
-    if (refreshKey === undefined || refreshKey === 0) return;
-    GetTasks(workspaceId)
-      .then((result) => setTasks((result || []) as unknown as Task[]));
-  }, [refreshKey, workspaceId]);
 
 
   useEffect(() => {

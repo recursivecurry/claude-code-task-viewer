@@ -1,18 +1,7 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import type { Task } from "../../types";
+import { STATUS_BORDER, STATUS_DOT } from "../../lib/status-colors";
 import clsx from "clsx";
-
-const STATUS_BORDER: Record<string, string> = {
-  pending: "border-yellow-400",
-  in_progress: "border-blue-400",
-  completed: "border-green-400",
-};
-
-const STATUS_DOT: Record<string, string> = {
-  pending: "bg-yellow-400",
-  in_progress: "bg-blue-400",
-  completed: "bg-green-400",
-};
 
 export default function TaskNode({ data, selected }: NodeProps) {
   const task = data as unknown as Task;

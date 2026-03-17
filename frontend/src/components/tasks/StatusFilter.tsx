@@ -1,10 +1,11 @@
 import clsx from "clsx";
+import { STATUS_BADGE } from "../../lib/status-colors";
 
 const STATUSES = [
   { value: "all", label: "All" },
-  { value: "pending", label: "Pending", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300" },
-  { value: "in_progress", label: "In Progress", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" },
-  { value: "completed", label: "Completed", color: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" },
+  { value: "pending", label: "Pending" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "completed", label: "Completed" },
 ] as const;
 
 interface StatusFilterProps {
@@ -25,7 +26,7 @@ export default function StatusFilter({ value, onChange, counts }: StatusFilterPr
             value === s.value
               ? s.value === "all"
                 ? "bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900"
-                : s.color
+                : STATUS_BADGE[s.value]
               : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
           )}
         >

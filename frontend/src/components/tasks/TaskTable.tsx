@@ -1,108 +1,21 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
-  getFilteredRowModel,
   flexRender,
   createColumnHelper,
   type SortingState,
 } from "@tanstack/react-table";
 import type { Task } from "../../types";
-import { GetTasks } from "../../../wailsjs/go/main/App";
+import { useTasks } from "../../hooks/useTasks";
+import { STATUS_BADGE } from "../../lib/status-colors";
 import StatusFilter from "./StatusFilter";
+import DetailPopup from "../DetailPopup";
 import clsx from "clsx";
 
 const columnHelper = createColumnHelper<Task>();
 
-const STATUS_COLORS: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300",
-  in_progress: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
-  completed: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
-};
-
-// --- Task Detail Popup ---
-function TaskDetailPopup({
-  task,
-  onClose,
-}: {
-  task: Task;
-  onClose: () => void;
-}) {
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-
-  const handleCopy = useCallback((key: string, value: string) => {
-    navigator.clipboard.writeText(value).then(() => {
-      setCopiedKey(key);
-      setTimeout(() => setCopiedKey(null), 1200);
-    });
-  }, []);
-
-  const rows: [string, string][] = [
-    ["ID", task.id],
-    ["Subject", task.subject],
-    ["Status", task.status],
-    ["Description", task.description || ""],
-    ["Active Form", task.activeForm || ""],
-    ["Blocks", (task.blocks || []).join(", ")],
-    ["Blocked By", (task.blockedBy || []).join(", ")],
-  ];
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div
-        className="bg-white dark:bg-zinc-800 rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-200 dark:border-zinc-700">
-          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Task Detail</h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-500"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <table className="w-full">
-          <tbody>
-            {rows.map(([key, value]) => {
-              const displayValue = value || "";
-              const isCopied = copiedKey === key;
-              return (
-                <tr
-                  key={key}
-                  className="border-b border-zinc-100 dark:border-zinc-700 last:border-0 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
-                  onClick={() => displayValue && handleCopy(key, displayValue)}
-                  title="Click to copy"
-                >
-                  <td className="px-5 py-2.5 text-sm font-medium text-zinc-500 dark:text-zinc-400 whitespace-nowrap w-[140px] align-top">
-                    {key}
-                  </td>
-                  <td className="px-5 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 break-all">
-                    <div className="flex items-start gap-2">
-                      <span className={clsx("flex-1", !displayValue && "text-zinc-300 dark:text-zinc-600")}>
-                        {displayValue || "-"}
-                      </span>
-                      {isCopied && (
-                        <span className="shrink-0 text-green-500 text-xs font-medium">Copied!</span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// --- Columns (detail button added as display column) ---
-// detail button is rendered inside the ID cell, so we need a callback ref
-// that will be set by the component. We use a display column approach instead.
 const createColumns = (onDetailClick: (task: Task) => void) => [
   columnHelper.accessor("id", {
     header: "ID",
@@ -139,7 +52,7 @@ const createColumns = (onDetailClick: (task: Task) => void) => [
         <span
           className={clsx(
             "px-2 py-0.5 rounded-full text-xs font-medium",
-            STATUS_COLORS[status]
+            STATUS_BADGE[status]
           )}
         >
           {status.replace("_", " ")}
@@ -158,6 +71,18 @@ const createColumns = (onDetailClick: (task: Task) => void) => [
   }),
 ];
 
+function taskToRows(task: Task): [string, string][] {
+  return [
+    ["ID", task.id],
+    ["Subject", task.subject],
+    ["Status", task.status],
+    ["Description", task.description || ""],
+    ["Active Form", task.activeForm || ""],
+    ["Blocks", (task.blocks || []).join(", ")],
+    ["Blocked By", (task.blockedBy || []).join(", ")],
+  ];
+}
+
 interface TaskTableProps {
   workspaceId: string;
   selectedTaskId: string | null;
@@ -171,28 +96,12 @@ export default function TaskTable({
   onSelectTask,
   refreshKey,
 }: TaskTableProps) {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { tasks, loading } = useTasks(workspaceId, refreshKey);
   const [sorting, setSorting] = useState<SortingState>([{ id: "id", desc: false }]);
   const [statusFilter, setStatusFilter] = useState("all");
   const [detailTask, setDetailTask] = useState<Task | null>(null);
 
   const columns = useMemo(() => createColumns((task) => setDetailTask(task)), []);
-
-  useEffect(() => {
-    setLoading(true);
-    setTasks([]);
-    setStatusFilter("all");
-    GetTasks(workspaceId)
-      .then((result) => setTasks((result || []) as unknown as Task[]))
-      .finally(() => setLoading(false));
-  }, [workspaceId]);
-
-  useEffect(() => {
-    if (refreshKey === undefined || refreshKey === 0) return;
-    GetTasks(workspaceId)
-      .then((result) => setTasks((result || []) as unknown as Task[]));
-  }, [refreshKey, workspaceId]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: tasks.length };
@@ -217,9 +126,13 @@ export default function TaskTable({
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     enableSortingRemoval: false,
   });
+
+  const handleRowClick = useCallback(
+    (taskId: string) => onSelectTask(taskId === selectedTaskId ? null : taskId),
+    [onSelectTask, selectedTaskId]
+  );
 
   if (loading) {
     return (
@@ -278,13 +191,7 @@ export default function TaskTable({
               {table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
-                  onClick={() =>
-                    onSelectTask(
-                      row.original.id === selectedTaskId
-                        ? null
-                        : row.original.id
-                    )
-                  }
+                  onClick={() => handleRowClick(row.original.id)}
                   className={clsx(
                     "border-b border-zinc-100 dark:border-zinc-800 cursor-pointer transition-colors",
                     row.original.id === selectedTaskId
@@ -305,8 +212,9 @@ export default function TaskTable({
       </div>
 
       {detailTask && (
-        <TaskDetailPopup
-          task={detailTask}
+        <DetailPopup
+          title="Task Detail"
+          rows={taskToRows(detailTask)}
           onClose={() => setDetailTask(null)}
         />
       )}
