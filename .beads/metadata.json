@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "server",
+  "dolt_database": "claude_code_tasks_dashboard",
+  "project_id": "a54b3726-5827-46e4-bcd5-f9d648c3251b"
+}
