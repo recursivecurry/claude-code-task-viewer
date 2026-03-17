@@ -47,6 +47,22 @@ git clone https://github.com/recursivecurry/claude-code-task-viewer.git
 cd claude-code-task-viewer
 ```
 
+### Quick Start (Makefile)
+
+Build the app (installs dependencies and the Wails CLI automatically):
+
+```bash
+make build
+```
+
+Build and install to `~/Applications/`:
+
+```bash
+make install
+```
+
+### Manual Setup
+
 Install frontend dependencies:
 
 ```bash
