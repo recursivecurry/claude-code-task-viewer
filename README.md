@@ -49,6 +49,12 @@ cd claude-code-task-viewer
 
 ### Quick Start (Makefile)
 
+Run in development mode with live reload:
+
+```bash
+make dev
+```
+
 Build the app (installs dependencies and the Wails CLI automatically):
 
 ```bash
