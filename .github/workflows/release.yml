@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            platform: darwin/universal
+            artifact: claude-task-viewer.app
+          - os: windows-latest
+            platform: windows/amd64
+            artifact: claude-task-viewer.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install frontend dependencies
+        run: npm install
+        working-directory: frontend
+
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: wails build -platform ${{ matrix.platform }}
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        run: wails build -platform ${{ matrix.platform }}
+
+      - name: Package macOS app
+        if: runner.os == 'macOS'
+        run: |
+          cd build/bin
+          zip -r claude-task-viewer-macos.zip claude-task-viewer.app
+
+      - name: Package Windows exe
+        if: runner.os == 'Windows'
+        run: |
+          cd build/bin
+          Compress-Archive -Path claude-task-viewer.exe -DestinationPath claude-task-viewer-windows.zip
+
+      - name: Upload release asset (macOS)
+        if: runner.os == 'macOS'
+        run: gh release upload ${{ github.event.release.tag_name }} build/bin/claude-task-viewer-macos.zip --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release asset (Windows)
+        if: runner.os == 'Windows'
+        run: gh release upload ${{ github.event.release.tag_name }} build/bin/claude-task-viewer-windows.zip --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
